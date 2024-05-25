@@ -80,14 +80,25 @@ export default function Home() {
     }
   }
 
+  const resetForm = () => {
+    setNewFile(null)
+    setOldFiles([])
+    setIsSuccessFiles(false)
+    setIsFailFiles(false)
+    setError({
+      newFile: '',
+      oldFiles: '',
+      apiRes: '',
+    })
+    setApiResponse(null)
+  }
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (newFile && oldFiles.length > 0) {
       setLoading(true)
-      setIsSuccessFiles(false)
-      setIsFailFiles(false)
-      setError({ ...error, apisRes: '' })
+      resetForm()
 
       const formData = new FormData()
       formData.append('newFile', newFile)
@@ -101,21 +112,16 @@ export default function Home() {
           body: formData,
         })
         const data = await response.json()
-        console.log('data -> ', data)
-        console.log('response.ok -> ', response.ok)
 
         if (response.ok) {
           setApiResponse(data)
           if (data?.data?.matched.length > 0) setIsSuccessFiles(true)
           if (data?.data?.failed.length > 0) setIsFailFiles(true)
         } else {
-          console.log('data?.message ', data?.message)
-
           setError({
             ...error,
             apiRes: data?.message || 'Something went wrong',
           })
-          console.log('error --> ', error)
         }
       } catch (err) {
         setError({ ...error, apiRes: 'An error occurred during file upload' })
@@ -220,20 +226,6 @@ export default function Home() {
 
     // Clean up
     document.body.removeChild(element)
-  }
-
-  const resetForm = () => {
-    setNewFile(null)
-    setOldFiles([])
-    setLoading(false)
-    setIsSuccessFiles(false)
-    setIsFailFiles(false)
-    setError({
-      newFile: '',
-      oldFiles: '',
-      apiRes: '',
-    })
-    setApiResponse(null)
   }
 
   const {

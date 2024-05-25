@@ -19,7 +19,6 @@ export async function POST(req: Request) {
     if (!newFile || !newFile?.name) return NextResponse.json({ success: false, message: "Please upload 'newFile' in form-data" }, { status: 400 });
     if (!oldFiles.length || !oldFiles[0]?.name) return NextResponse.json({ success: false, message: "Please upload one or more 'oldFiles' in form-data" }, { status: 400 });
     
-    // let oldFilesContent: any[] = [];
     let oldFilesExtractedData: ExtractedData[] = [];
     let failedExtractedData: ExtractedData[] = [];
 
@@ -33,8 +32,6 @@ export async function POST(req: Request) {
     const newFileExtractedData: ExtractedData[] = getDataFromText(newFileContent, newFile.name, failedExtractedData);
 
     const matchingPassages = await findMatchingBiblicalPassages(oldFilesExtractedData, newFileExtractedData);
-
-    // if (matchingPassages.length === 0) return NextResponse.json({ success: false, message: "Not found any matching biblical passage" }, { status: 404 });
 
     return NextResponse.json({ success: true, data: { matched: matchingPassages, failed: failedExtractedData }}, { status: 200 });
   } catch (err: any) {
@@ -176,8 +173,6 @@ function getDataFromText(text: string, fileName: string, failedExtractedData: Ex
   // Find all the dates in the text
   const dates = text.match(datePattern);
   
-  // if (!dates) return [];
-
   // Split the text based on the dates
   const splitText = text.split(datePattern);
 
