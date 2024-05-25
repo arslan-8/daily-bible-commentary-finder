@@ -115,7 +115,7 @@ export default function Home() {
           method: 'POST',
           body: formData,
         })
-        const data = await response.json()
+        const data = await response.json()        
 
         if (response.ok) {
           setApiResponse(data)
@@ -128,7 +128,7 @@ export default function Home() {
           })
         }
       } catch (err) {
-        setError({ ...error, apiRes: 'An error occurred during file upload' })
+        setError({ ...error, apiRes: 'An error occured, try reducing payload size to 4 mb' })
         console.log("error --> ", err);
       } finally {
         setLoading(false)
