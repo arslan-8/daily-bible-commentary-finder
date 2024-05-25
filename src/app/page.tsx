@@ -95,10 +95,10 @@ export default function Home() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    resetForm()
 
     if (newFile && oldFiles.length > 0) {
       setLoading(true)
-      resetForm()
 
       const formData = new FormData()
       formData.append('newFile', newFile)
