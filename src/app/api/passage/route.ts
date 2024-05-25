@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 const WordExtractor = require("word-extractor");
 const extractor = new WordExtractor();
 
+export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   try {
 

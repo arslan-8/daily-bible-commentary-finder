@@ -129,6 +129,7 @@ export default function Home() {
         }
       } catch (err) {
         setError({ ...error, apiRes: 'An error occurred during file upload' })
+        console.log("error --> ", err);
       } finally {
         setLoading(false)
       }
