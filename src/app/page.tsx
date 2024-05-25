@@ -80,9 +80,13 @@ export default function Home() {
     }
   }
 
-  const resetForm = () => {
+  const clearForm = () => {
     setNewFile(null)
     setOldFiles([])
+    resetValues()
+  }
+
+  const resetValues = () => {
     setIsSuccessFiles(false)
     setIsFailFiles(false)
     setError({
@@ -95,7 +99,7 @@ export default function Home() {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    resetForm()
+    resetValues()
 
     if (newFile && oldFiles.length > 0) {
       setLoading(true)
@@ -418,7 +422,7 @@ export default function Home() {
             <div className="flex justify-end text-blue-400">
               <button
                 className="flex justify-center text-sm"
-                onClick={resetForm}
+                onClick={clearForm}
               >
                 <RiDeleteBin6Line className="mr-2" size={20} />
                 <span>Clear form</span>
