@@ -147,7 +147,7 @@ export default function Home() {
     }
   }
 
-  const downloadTxtFile = () => {
+  const downloadJuxtapositionTxtFile = () => {
     if (!apiResponse) return
 
     const element = document.createElement('a')
@@ -156,10 +156,32 @@ export default function Home() {
       { type: 'text/plain' }
     )
     element.href = URL.createObjectURL(file)
-    element.download = 'biblical_passage.txt'
+    element.download = 'matching_commentaries.txt'
     document.body.appendChild(element)
     element.click()
   }
+
+  const downloadWdiffTxtFile = () => {
+    if (!apiResponse) return;
+  
+    const filteredMatched = apiResponse.data.matched.map((item: any) => {
+      return {
+        biblicalPassage: item.biblicalPassage,
+        recentContentFromOldFiles: item.oldFilesContent.slice(0, 2)  // Include only the first two items
+      };
+    });
+  
+    const fileContent = JSON.stringify(filteredMatched, null, 2);
+  
+    const element = document.createElement('a');
+    const file = new Blob([fileContent], { type: 'text/plain' });
+    element.href = URL.createObjectURL(file);
+    element.download = 'recent_matching_commentaries.txt';
+    document.body.appendChild(element);
+    element.click();
+    document.body.removeChild(element);
+  };
+  
 
   const downloadFailedTxtFile = () => {
     if (!apiResponse) return
@@ -182,23 +204,26 @@ export default function Home() {
 
     // Determine the maximum number of old dates
     apiResponse?.data?.matched.forEach((item: any) => {
-      const oldDatesCount = item.matchingPassageContent.length - 1
+      const oldDatesCount = item.oldFilesContent.length
       maxOldDatesCount = Math.max(maxOldDatesCount, oldDatesCount)
     })
 
     // Create header
     const header = ['Date', 'Passage']
     for (let i = 1; i <= maxOldDatesCount; i++) {
-      header.push(`Old_Date_${i}`)
+      header.push(`Old_Date_${i}`, `Old_File_${i}`)
+      // header.push(`Old_File_${i}`)
     }
 
     // Create rows
     const rows = apiResponse?.data?.matched.map((item: any) => {
-      const row = [item.matchingPassageContent[0].date, item.biblicalPassage]
-      const oldDatesCount = item.matchingPassageContent.length - 1
-      for (let i = 1; i <= maxOldDatesCount; i++) {
-        if (i <= oldDatesCount) {
-          row.push(item.matchingPassageContent[i].date)
+      const row = [item.newFileContent[0].date, item.biblicalPassage]
+      const oldDatesCount = item.oldFilesContent.length
+      for (let i = 0; i < maxOldDatesCount; i++) {
+        if (i < oldDatesCount) {
+          row.push(item.oldFilesContent[i].date, item.oldFilesContent[i].fileName)
+          // console.log("item --> ", item.oldFilesContent[i]);
+          
         } else {
           row.push('')
         }
@@ -207,7 +232,7 @@ export default function Home() {
     })
 
     // Combine header and rows
-    const data = [header, ...rows]
+    const data = [header, ...rows]    
 
     // Create a worksheet
     const ws = XLSX.utils.aoa_to_sheet(data)
@@ -225,7 +250,7 @@ export default function Home() {
     // Create a link element and trigger a download
     const element = document.createElement('a')
     element.href = URL.createObjectURL(blob)
-    element.download = 'biblical_passage.xlsx'
+    element.download = 'matching_commentaries.xlsx'
     document.body.appendChild(element)
     element.click()
 
@@ -266,8 +291,8 @@ export default function Home() {
           </div>
         ) : (
           <div className="bg-white shadow-lg rounded-lg p-6 md:p-12 max-w-3xl w-full">
-            <h1 className="text-2xl text-center text-blue-400 font-semibold">
-              Get Matching Biblical Passages
+            <h1 className="text-xl text-center text-blue-400 font-semibold">
+              Get Matching Commentaries for Biblical Passages
             </h1>
 
             <Divider label="Upload files" />
@@ -370,7 +395,8 @@ export default function Home() {
               labelColor="text-blue-500"
               borderColor="border-blue-300"
             >
-              <div className="flex flex-col items-center space-y-4 md:space-y-0 md:space-x-4 md:flex-row md:justify-evenly">
+              {/* </div><div className="flex flex-col items-center space-y-4 md:space-y-0 md:space-x-4 md:flex-row md:justify-evenly"> */}
+              <div className="flex flex-wrap justify-center items-center md:space-x-4">
                 <button
                   className={`w-3/4 md:w-2/5 bg-blue-500 text-white p-2 rounded flex justify-center text-sm cursor-pointer ${
                     !isSuccessFiles && 'opacity-60 cursor-not-allowed'
@@ -379,17 +405,27 @@ export default function Home() {
                   disabled={!isSuccessFiles}
                 >
                   <TbDownload className="mr-1 md:mr-2" size={20} />
-                  <span>Download XLSX</span>
+                  <span>Matching XLSX</span>
                 </button>
                 <button
-                  className={`w-3/4 md:w-2/5 bg-blue-500 text-white py-2 rounded flex justify-center text-sm cursor-pointer ${
+                  className={`w-3/4 md:w-2/5 bg-blue-500 text-white py-2 mt-4 md:mt-0 rounded flex justify-center text-sm cursor-pointer ${
                     !isSuccessFiles && 'opacity-60 cursor-not-allowed'
                   }`}
-                  onClick={downloadTxtFile}
+                  onClick={downloadJuxtapositionTxtFile}
                   disabled={!isSuccessFiles}
                 >
                   <TbDownload className="mr-1 md:mr-2" size={20} />
-                  <span>Download TXT</span>
+                  <span>Matching TXT</span>
+                </button>
+                <button
+                  className={`w-3/4 md:w-2/5 bg-blue-500 text-white py-2 mt-4 rounded flex justify-center text-sm cursor-pointer ${
+                    !isSuccessFiles && 'opacity-60 cursor-not-allowed'
+                  }`}
+                  onClick={downloadWdiffTxtFile}
+                  disabled={!isSuccessFiles}
+                >
+                  <TbDownload className="mr-1 md:mr-2" size={20} />
+                  <span>Recent TXT</span>
                 </button>
               </div>
             </ContainerWithLabel>
@@ -413,7 +449,7 @@ export default function Home() {
                   disabled={!isFailFiles}
                 >
                   <TbDownload className="mr-1 md:mr-2" size={20} />
-                  <span>Download TXT</span>
+                  <span>Missed TXT</span>
                 </button>
               </div>
             </ContainerWithLabel>
