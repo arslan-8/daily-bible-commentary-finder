@@ -17,7 +17,26 @@ export async function POST(req: Request) {
     }
 
     const oldFiles = formData?.getAll('oldFiles') as File[];
-    const newFile = formData?.get('newFile') as File;    
+    const newFile = formData?.get('newFile') as File; 
+
+    try {
+      oldFiles.sort((a, b) => {
+          const yearA = getYearFromFileName(a.name);
+          const yearB = getYearFromFileName(b.name);
+  
+          if (yearA === null) {
+              throw new Error(`Please rename the file '${a.name}' with year including in it`);
+          }
+  
+          if (yearB === null) {
+              throw new Error(`Please rename the file '${b.name}' with year including in it`);
+          }
+  
+          return yearB - yearA; // Descending order
+      });
+    } catch (error: any) {
+        return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    }
 
     if (!newFile || !newFile?.name) return NextResponse.json({ success: false, message: "Please upload 'newFile' in form-data" }, { status: 400 });
     if (!oldFiles.length || !oldFiles[0]?.name) return NextResponse.json({ success: false, message: "Please upload one or more 'oldFiles' in form-data" }, { status: 400 });
@@ -26,7 +45,7 @@ export async function POST(req: Request) {
     let failedExtractedData: ExtractedData[] = [];
 
     for (const file of oldFiles) {
-      const content = await readUploadedFile(file);
+      const content = await readUploadedFile(file);      
       const extractedData = getDataFromText(content, file.name, failedExtractedData);
       oldFilesExtractedData.push(...extractedData);
     }
@@ -41,6 +60,11 @@ export async function POST(req: Request) {
     console.log("error --> ", err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
+}
+
+const getYearFromFileName = (fileName: string): number | null => {
+  const yearMatch = fileName.match(/(\d{4})/);
+  return yearMatch ? parseInt(yearMatch[0], 10) : null;
 }
 
 interface ExtractedData {
@@ -58,7 +82,8 @@ interface MatchingPassageContent {
 
 interface FindMatchingBiblicalPassagesRes {
   biblicalPassage: string;
-  matchingPassageContent: MatchingPassageContent[];
+  newFileContent: MatchingPassageContent[];
+  oldFilesContent: MatchingPassageContent[];
 }
 
 
@@ -67,91 +92,61 @@ async function findMatchingBiblicalPassages(
   newFileExtractedData: ExtractedData[]
 ): Promise<FindMatchingBiblicalPassagesRes[]> {
   const result: FindMatchingBiblicalPassagesRes[] = [];
-  const passageMap: Record<string, MatchingPassageContent[]> = {};
 
-  for (const newFile of newFileExtractedData) {
-    const matchingContentNew = {
-      fileName: newFile.fileName,
-      date: newFile.date,
-      text: newFile.text,
-    };
+  // Map to track processed passages in newFileExtractedData
+  const processedPassages: Set<string> = new Set();
 
-    for (const oldFile of oldFilesExtractedData) {
-      if (newFile.biblicalPassage === oldFile.biblicalPassage) {
-        const matchingContentOld = {
-          fileName: oldFile.fileName,
-          date: oldFile.date,
-          text: oldFile.text,
-        };
+  // Create an array of promises for concurrent execution
+  const promises: Promise<void>[] = [];
 
-        if (passageMap[newFile.biblicalPassage]) {
-          passageMap[newFile.biblicalPassage].push(matchingContentOld);
-        } else {
-          passageMap[newFile.biblicalPassage] = [matchingContentNew, matchingContentOld];
-        }
-      }
+  for (let i = 0; i < newFileExtractedData.length; i++) {
+    const newFile = newFileExtractedData[i];
+
+    // If the passage has already been processed, skip it
+    if (processedPassages.has(newFile.biblicalPassage)) {
+      continue;
     }
+
+    // Find all matching passages within newFileExtractedData itself
+    const matchingContentNewFiles = newFileExtractedData
+      .filter((nf) => nf.biblicalPassage === newFile.biblicalPassage)
+      .map((nf) => ({
+        fileName: nf.fileName,
+        date: nf.date,
+        text: nf.text,
+      }));
+
+    // Mark this passage as processed
+    processedPassages.add(newFile.biblicalPassage);
+
+    // Push a promise for comparison with oldFilesExtractedData
+    promises.push(
+      new Promise<void>((resolve) => {
+        const matchingContentOldFiles = oldFilesExtractedData
+          .filter((oldFile) => oldFile.biblicalPassage === newFile.biblicalPassage)
+          .map((oldFile) => ({
+            fileName: oldFile.fileName,
+            date: oldFile.date,
+            text: oldFile.text,
+          }));
+
+        if (matchingContentOldFiles.length > 0) {
+          result.push({
+            biblicalPassage: newFile.biblicalPassage,
+            newFileContent: matchingContentNewFiles,
+            oldFilesContent: matchingContentOldFiles,
+          });
+        }
+
+        resolve();
+      })
+    );
   }
 
-  // Convert the map to the result array
-  for (const [biblicalPassage, matchingPassageContent] of Object.entries(passageMap)) {
-    result.push({ biblicalPassage, matchingPassageContent });
-  }
-
+  // Await all promises concurrently
+  await Promise.all(promises);
   return result;
 }
-
-
-// async function findMatchingBiblicalPassages(
-//   oldFilesExtractedData: ExtractedData[],
-//   newFileExtractedData: ExtractedData[]
-// ): Promise<FindMatchingBiblicalPassagesRes[]> {
-//   const result: FindMatchingBiblicalPassagesRes[] = [];
-
-//   // Create an array of promises for concurrent execution
-//   const promises: Promise<void>[] = [];
-
-//   for (const oldFile of oldFilesExtractedData) {
-//     for (const newFile of newFileExtractedData) {
-//       // Push a promise for each comparison operation
-//       promises.push(new Promise<void>((resolve) => {
-//         if (newFile.biblicalPassage === oldFile.biblicalPassage) {
-//           const matchingContentNew = {
-//             fileName: newFile.fileName,
-//             date: newFile.date,
-//             text: newFile.text
-//           };
-
-//           const matchingContentOld = {
-//             fileName: oldFile.fileName,
-//             date: oldFile.date,
-//             text: oldFile.text
-//           };
-
-//           // Find the existing entry in the result array
-//           const existingEntry = result.find(
-//             entry => entry.biblicalPassage === newFile.biblicalPassage
-//           );
-
-//           if (existingEntry) {
-//             existingEntry.matchingPassageContent.push(matchingContentOld);
-//           } else {
-//             // Create a new entry if it doesn't exist
-//             result.push({
-//               biblicalPassage: newFile.biblicalPassage,
-//               matchingPassageContent: [matchingContentNew, matchingContentOld]
-//             });
-//           }
-//         }
-//         resolve();
-//       }));
-//     }
-//   }
-
-//   // Await all promises concurrently
-//   await Promise.all(promises);
-//   return result;
-// }
 
 
 async function readUploadedFile(file: File): Promise<string> {
@@ -205,7 +200,7 @@ function getDataFromText(text: string, fileName: string, failedExtractedData: Ex
     j++;
   }
 
-  return extractedData;
+  return extractedData.reverse();
 }
 
 function findBiblicalPassages(text: string): string {
