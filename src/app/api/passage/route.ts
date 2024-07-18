@@ -200,7 +200,8 @@ function getDataFromText(text: string, fileName: string, failedExtractedData: Ex
     j++;
   }
 
-  return extractedData.reverse();
+  // return extractedData.reverse();
+  return extractedData
 }
 
 function findBiblicalPassages(text: string): string {
