@@ -1,9 +1,8 @@
 'use client'
 
-import React, { useState, ChangeEvent, FormEvent } from 'react'
+import React, { useState, FormEvent } from 'react'
 import { Circles } from 'react-loader-spinner'
 import { IoCloudUploadSharp } from 'react-icons/io5'
-import { TbDownload } from 'react-icons/tb'
 import { RiDeleteBin6Line } from 'react-icons/ri'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
@@ -11,6 +10,7 @@ import { useDropzone, Accept } from 'react-dropzone'
 
 import Divider from '@/components/Divider'
 import ContainerWithLabel from '@/components/ContainerWithLabel'
+import Button from '@/components/Button'
 
 const acceptNewFile: Accept = {
   'text/plain': ['.txt'],
@@ -159,29 +159,39 @@ export default function Home() {
     element.download = 'matching_commentaries.txt'
     document.body.appendChild(element)
     element.click()
+    document.body.removeChild(element)
   }
 
   const downloadWdiffTxtFile = () => {
     if (!apiResponse) return;
   
     const filteredMatched = apiResponse.data.matched.map((item: any) => {
+      let recentContentFromOldFiles = item.oldFilesContent[0]; // Start with the first item
+  
+      for (let i = 1; i < item.oldFilesContent.length; i++) {
+        if (item.oldFilesContent[i].fileName === recentContentFromOldFiles.fileName)
+          recentContentFromOldFiles = item.oldFilesContent[i];
+        else
+          break
+      }
+  
       return {
         biblicalPassage: item.biblicalPassage,
-        recentContentFromOldFiles: item.oldFilesContent.slice(0, 2)  // Include only the first two items
+        recentContentFromOldFiles
       };
     });
   
-    const fileContent = JSON.stringify(filteredMatched, null, 2);
-  
     const element = document.createElement('a');
-    const file = new Blob([fileContent], { type: 'text/plain' });
+    const file = new Blob(
+      [JSON.stringify(filteredMatched, null, 2)],
+      { type: 'text/plain' }
+    );
     element.href = URL.createObjectURL(file);
     element.download = 'recent_matching_commentaries.txt';
     document.body.appendChild(element);
     element.click();
-    document.body.removeChild(element);
-  };
-  
+    document.body.removeChild(element); // Clean up the DOM
+  }
 
   const downloadFailedTxtFile = () => {
     if (!apiResponse) return
@@ -395,44 +405,33 @@ export default function Home() {
               labelColor="text-blue-500"
               borderColor="border-blue-300"
             >
-              {/* </div><div className="flex flex-col items-center space-y-4 md:space-y-0 md:space-x-4 md:flex-row md:justify-evenly"> */}
               <div className="flex flex-wrap justify-center items-center md:space-x-4">
-                <button
-                  className={`w-3/4 md:w-2/5 bg-blue-500 text-white p-2 rounded flex justify-center text-sm cursor-pointer ${
-                    !isSuccessFiles && 'opacity-60 cursor-not-allowed'
-                  }`}
+                <Button
                   onClick={downloadXlsxFile}
                   disabled={!isSuccessFiles}
                 >
-                  <TbDownload className="mr-1 md:mr-2" size={20} />
-                  <span>Matching XLSX</span>
-                </button>
-                <button
-                  className={`w-3/4 md:w-2/5 bg-blue-500 text-white py-2 mt-4 md:mt-0 rounded flex justify-center text-sm cursor-pointer ${
-                    !isSuccessFiles && 'opacity-60 cursor-not-allowed'
-                  }`}
+                  Matching XLSX
+                </Button>
+                <Button
+                  className="py-2 mt-4 md:mt-0"
                   onClick={downloadJuxtapositionTxtFile}
                   disabled={!isSuccessFiles}
                 >
-                  <TbDownload className="mr-1 md:mr-2" size={20} />
-                  <span>Matching TXT</span>
-                </button>
-                <button
-                  className={`w-3/4 md:w-2/5 bg-blue-500 text-white py-2 mt-4 rounded flex justify-center text-sm cursor-pointer ${
-                    !isSuccessFiles && 'opacity-60 cursor-not-allowed'
-                  }`}
+                  Matching TXT
+                </Button>
+                <Button
+                  className="py-2 mt-4"
                   onClick={downloadWdiffTxtFile}
                   disabled={!isSuccessFiles}
                 >
-                  <TbDownload className="mr-1 md:mr-2" size={20} />
-                  <span>Recent TXT</span>
-                </button>
+                  Recent TXT
+                </Button>
               </div>
             </ContainerWithLabel>
             <br />
 
             {apiResponse?.success && !isFailFiles && (
-              <p className="text-sm italic mb-4">No text failed</p>
+              <p className="text-sm italic mb-4">No failed text found</p>
             )}
 
             <ContainerWithLabel
@@ -441,16 +440,12 @@ export default function Home() {
               borderColor="border-red-300"
             >
               <div className="flex justify-center">
-                <button
-                  className={`w-3/4 md:w-2/5 bg-blue-500 text-white p-2 rounded flex justify-center text-sm cursor-pointer ${
-                    !isFailFiles && 'opacity-60 cursor-not-allowed'
-                  }`}
+                <Button
                   onClick={downloadFailedTxtFile}
                   disabled={!isFailFiles}
                 >
-                  <TbDownload className="mr-1 md:mr-2" size={20} />
-                  <span>Missed TXT</span>
-                </button>
+                  Missed TXT
+                </Button>
               </div>
             </ContainerWithLabel>
 
