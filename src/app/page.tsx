@@ -41,6 +41,8 @@ export default function Home() {
   })
   const [apiResponse, setApiResponse] = useState<any>(null)
 
+  const currentYear = new Date().getFullYear()
+
   const handleNewFileDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (
@@ -465,7 +467,7 @@ export default function Home() {
       </main>
       <footer className="bg-white text-center py-4">
         <p className="text-gray-600">
-          Copyright © 2024 - Comunità di Sant’Egidio
+          Copyright © {currentYear} - Comunità di Sant’Egidio
         </p>
         <p className="text-gray-600">
           Contact developer:{' '}
