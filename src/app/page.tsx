@@ -311,12 +311,12 @@ export default function Home() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col space-y-2">
-                <label className="flex flex-col">
+                <div className="flex flex-col">
                   <p className="font-semibold">New File</p>
                   <p className="text-gray-500 text-sm">
                     Select a single file (.txt, .doc, .docx)
                   </p>
-                </label>
+                </div>
                 <div
                   {...getNewFileRootProps({
                     className:
@@ -341,12 +341,12 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col space-y-2">
-                <label className="flex flex-col">
+                <div className="flex flex-col">
                   <p className="font-semibold">Old Files</p>
                   <p className="text-gray-500 text-sm">
                     Select multiple files (.txt, .doc, .docx)
                   </p>
-                </label>
+                </div>
                 <div
                   {...getOldFilesRootProps({
                     className:
